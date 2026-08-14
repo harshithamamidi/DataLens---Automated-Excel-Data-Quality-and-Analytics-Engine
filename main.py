@@ -1,78 +1,122 @@
 import os
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 def load_dataset(file_path):
-if not os.path.exists(file_path):
-raise FileNotFoundError(f"The file {file_path} does not exist.")
-extension = os.path.splitext(file_path)[1].split('.')[-1].lower()
-if extension == 'csv':
-return pd.read_csv(file_path)
-elif extension in ['xls', 'xlsx']:
-return pd.read_excel(file_path)
-elif extension == 'json':
-return pd.read_json(file_path)  
-else:
-raise ValueError(f"Unsupported file format: {extension}")
 
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file {file_path} does not exist.")
 
-file_path = "input/adult.csv"
+    extension = os.path.splitext(file_path)[1].lower()
 
-df = load_dataset(file_path)
+    if extension == ".csv":
+        df = pd.read_csv(file_path)
 
-# Remove leading/trailing spaces from text columns
-df = df.apply(lambda col: col.str.strip() if col.dtype == "object" else col)
+    elif extension in [".xls", ".xlsx"]:
+        df = pd.read_excel(file_path)
 
-# Convert placeholders to missing values
-df.replace(["?", ""], pd.NA, inplace=True)
+    elif extension == ".json":
+        df = pd.read_json(file_path)
 
-print("Dataset loaded successfully!\n")
+    else:
+        raise ValueError(f"Unsupported file format: {extension}")
 
-print(df.head())
+    df = df.apply(
+        lambda col: col.str.strip()
+        if col.dtype == "object"
+        else col
+    )
 
-print("\nRows and Columns:", df.shape)
+    df.replace(
+        ["?", ""],
+        pd.NA,
+        inplace=True
+    )
 
-print("\nColumn Names:")
-print(df.columns)
+    return df
 
-print("\nData Types:")
-print(df.dtypes)
-print(df.dtypes)
 
 def profile_data(df):
-    print("\n"+ "=" * 50)
-    print("Data Profiling Summary")
-    print("=" * 50)
 
-    print(f"\nTotal Rows: {df.shape[0]}")
-    print(f"Total Columns: {df.shape[1]}")
+    profile = {
+        "Rows": df.shape[0],
+        "Columns": df.shape[1],
+        "Missing Values": int(df.isnull().sum().sum()),
+        "Duplicate Rows": int(df.duplicated().sum()),
+        "Memory Usage (MB)": round(
+            df.memory_usage(deep=True).sum() / (1024 ** 2),
+            2
+        )
+    }
 
-    print("\nColumn names")
-    print(df.columns.tolist())
-
-    print("\nData types")
-    print(df.dtypes)
-
-profile_data(df)
-
-print("\nMissing Values:")
-missing = df.isnull().sum()
-missing = missing[missing > 0]
-
-if missing.empty:
-    print("No missing values found.")
-else:
-    print(missing)
-
-duplicates = df.duplicated().sum()
-print(f"\nNumber of duplicate rows: {duplicates}")
-
-memory_usage = df.memory_usage(deep=True).sum() / (1024 ** 2)
-print(f"\nMemory usage of the DataFrame: {memory_usage:.2f} MB")
-
-print("\nSummary Statistics:")
-print(df.describe())
-
-print("\nCategorical Summary:")
-print(df.describe(include=['object', 'category']))
+    return profile
 
 
+def remove_duplicates(df):
+
+    initial_count = len(df)
+
+    df = df.drop_duplicates()
+
+    removed = initial_count - len(df)
+
+    return df, removed
+
+
+def drop_sparse_columns(df, threshold=0.4):
+
+    missing_ratio = df.isnull().mean()
+
+    columns_to_drop = missing_ratio[
+        missing_ratio > threshold
+    ].index.tolist()
+
+    df = df.drop(
+        columns=columns_to_drop
+    )
+
+    return df, columns_to_drop
+
+
+def drop_sparse_rows(df, threshold=0.4):
+
+    missing_ratio = df.isnull().mean(axis=1)
+
+    rows_to_drop = missing_ratio[
+        missing_ratio > threshold
+    ].index.tolist()
+
+    df = df.drop(
+        index=rows_to_drop
+    )
+
+    return df, len(rows_to_drop)
+
+
+def fill_missing_values(df):
+
+    for column in df.columns:
+
+        if is_numeric_dtype(df[column]):
+
+            median = df[column].median()
+
+            if pd.notnull(median):
+                df[column] = df[column].fillna(median)
+            else:
+                df[column] = df[column].fillna(0)
+
+        else:
+
+            mode_value = df[column].mode()
+
+            if not mode_value.empty:
+                df[column] = df[column].fillna(mode_value[0])
+
+            else:
+                df[column] = df[column].fillna("Unknown")
+
+    return df
