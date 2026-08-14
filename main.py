@@ -161,3 +161,160 @@ def convert_data_types(df):
 
 
     return df
+
+def missing_value_chart(df):
+
+    missing = df.isnull().sum()
+
+    missing = missing[
+        missing > 0
+    ]
+
+    if missing.empty:
+        return None
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    sns.barplot(
+        x=missing.index,
+        y=missing.values,
+        ax=ax
+    )
+
+    ax.set_title(
+        "Missing Values by Column"
+    )
+
+    ax.set_xlabel(
+        "Columns"
+    )
+
+    ax.set_ylabel(
+        "Missing Count"
+    )
+
+    plt.xticks(
+        rotation=45
+    )
+
+    plt.tight_layout()
+
+    return fig
+
+
+def numeric_distribution_chart(df):
+
+    numeric_columns = df.select_dtypes(
+        include=["number"]
+    ).columns
+
+
+    charts = []
+
+
+    for column in numeric_columns[:3]:
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+        sns.histplot(
+            data=df,
+            x=column,
+            kde=True,
+            ax=ax
+        )
+
+        ax.set_title(
+            f"Distribution of {column}"
+        )
+
+        plt.tight_layout()
+
+        charts.append(fig)
+
+
+    return charts
+
+
+def categorical_distribution_chart(df):
+
+    categorical_columns = df.select_dtypes(
+        include=["object"]
+    ).columns
+
+
+    charts = []
+
+
+    for column in categorical_columns[:3]:
+
+        values = (
+            df[column]
+            .value_counts()
+            .head(10)
+        )
+
+
+        fig, ax = plt.subplots(
+            figsize=(8, 5)
+        )
+
+
+        sns.barplot(
+            x=values.values,
+            y=values.index,
+            ax=ax
+        )
+
+
+        ax.set_title(
+            f"Top Categories in {column}"
+        )
+
+
+        ax.set_xlabel(
+            "Count"
+        )
+
+        ax.set_ylabel(
+            column
+        )
+
+        plt.tight_layout()
+
+
+        charts.append(fig)
+
+
+    return charts
+
+
+def export_cleaned_data(df, filename):
+
+    output_dir = "output"
+
+    os.makedirs(
+        output_dir,
+        exist_ok=True
+    )
+
+
+    name = os.path.splitext(
+        filename
+    )[0]
+
+
+    output_path = os.path.join(
+        output_dir,
+        f"{name}_cleaned.xlsx"
+    )
+
+
+    df.to_excel(
+        output_path,
+        index=False
+    )
+
+
+    return output_path
