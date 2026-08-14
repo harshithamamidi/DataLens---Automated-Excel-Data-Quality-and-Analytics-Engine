@@ -162,6 +162,7 @@ def convert_data_types(df):
 
     return df
 
+
 def missing_value_chart(df):
 
     missing = df.isnull().sum()
@@ -318,3 +319,4 @@ def export_cleaned_data(df, filename):
 
 
     return output_path
+
