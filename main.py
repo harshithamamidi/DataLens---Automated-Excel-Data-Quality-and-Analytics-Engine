@@ -120,3 +120,44 @@ def fill_missing_values(df):
                 df[column] = df[column].fillna("Unknown")
 
     return df
+
+def generate_quality_report(df):
+
+    report = pd.DataFrame({
+        "Column": df.columns,
+        "Data Type": df.dtypes.astype(str).values,
+        "Missing Values": df.isnull().sum().values,
+        "Missing Percentage": (
+            df.isnull().mean().values * 100
+        ).round(2),
+        "Unique Values": df.nunique().values
+    })
+
+    return report
+
+def convert_data_types(df):
+
+    for column in df.columns:
+
+        if df[column].dtype == "object":
+
+            converted = pd.to_numeric(
+                df[column],
+                errors="coerce"
+            )
+
+
+            valid_values = converted.notna().sum()
+
+
+            if valid_values > 0:
+
+                original_values = df[column].notna().sum()
+
+
+                if valid_values / original_values > 0.8:
+
+                    df[column] = converted
+
+
+    return df
